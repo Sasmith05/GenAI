@@ -1,0 +1,72 @@
+import bcrypt from "bcrypt";
+import db from "../config/db.js";
+
+// Register new user
+export const registerUser = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      role,
+      businessName,
+      businessType,
+      location, // corresponds to business_location
+      experience,
+      interests
+    } = req.body;
+    console.log(req.body);
+    console.log(firstName);
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone || !password || !role) {
+      return res.status(400).json({ message: "All required fields must be filled" });
+    }
+
+    // Check if email already exists
+    const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Combine first and last name
+    const fullName = `${firstName} ${lastName}`;
+
+    // Insert into users table
+    const [result] = await db.query(
+      "INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+      [fullName, email, phone, hashedPassword, role]
+    );
+
+    // If role is seller, create seller profile
+    if (role === "seller") {
+      if (!businessName || !businessType || !location) {
+        return res.status(400).json({ message: "Seller business information is required" });
+      }
+
+      await db.query(
+        "INSERT INTO sellers (user_id, business_name, business_type, business_location) VALUES (?, ?, ?, ?)",
+        [result.insertId, businessName, businessType, location]
+      );
+
+      // Optionally: store experience and interests if you add columns in sellers table
+      // await db.query(
+      //   "UPDATE sellers SET experience = ?, interests = ? WHERE user_id = ?",
+      //   [experience, JSON.stringify(interests), result.insertId]
+      // );
+    }
+
+    res.status(201).json({
+      message: "User registered successfully",
+      userId: result.insertId,
+      role,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

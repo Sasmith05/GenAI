@@ -111,34 +111,26 @@ const Registration = () => {
 
   const handleFormSubmit = async (formData) => {
     setIsLoading(true);
-    
+
     try {
-      // Simulate Firebase registration
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock successful registration
-      const userData = {
-        id: Date.now(),
-        ...formData,
-        role: selectedRole,
-        createdAt: new Date()?.toISOString(),
-        isVerified: false
-      };
+     
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, role: selectedRole }),
+      });
 
-      // Store user data (in real app, this would be handled by Firebase)
-      localStorage.setItem('userData', JSON.stringify(userData));
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userRole', selectedRole);
+      const data = await response.json();
 
-      // Navigate based on role
-      if (selectedRole === 'customer') {
-        navigate('/customer-dashboard');
+      if (response.ok) {
+        localStorage.setItem("userData", JSON.stringify(data));
+        navigate(selectedRole === "customer" ? "/customer-dashboard" : "/seller-dashboard");
       } else {
-        navigate('/seller-dashboard');
+        alert(data.message || "Registration failed");
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      // Handle error (show toast, etc.)
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Something went wrong");
     } finally {
       setIsLoading(false);
     }
