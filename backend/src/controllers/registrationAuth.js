@@ -17,8 +17,7 @@ export const registerUser = async (req, res) => {
       experience,
       interests
     } = req.body;
-    console.log(req.body);
-    console.log(firstName);
+
     // Validate required fields
     if (!firstName || !lastName || !email || !phone || !password || !role) {
       return res.status(400).json({ message: "All required fields must be filled" });
